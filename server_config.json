@@ -1,0 +1,6 @@
+{
+    "UPLOAD_FOLDER": "./uploads",
+    "DEBUG": false,
+    "HOST": "0.0.0.0",
+    "PORT": 8083
+}

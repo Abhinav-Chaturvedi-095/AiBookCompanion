@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PDF Summarizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .upload-btn {
+            margin: 20px 0;
+        }
+        input[type="file"] {
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            color: green;
+        }
+        .error {
+            margin-top: 20px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Your PDF</h1>
+        <form id="uploadForm">
+            <input type="file" id="fileInput" accept=".pdf" required>
+            <div class="upload-btn">
+                <button type="submit">Upload</button>
+            </div>
+        </form>
+        <div id="responseMessage" class="message"></div>
+        <div id="errorMessage" class="error"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('fileInput');
+            const responseMessage = document.getElementById('responseMessage');
+            const errorMessage = document.getElementById('errorMessage');
+
+            responseMessage.textContent = '';
+            errorMessage.textContent = '';
+
+            if (!fileInput.files.length) {
+                errorMessage.textContent = 'Please select a file to upload.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    responseMessage.textContent = result.message;
+                } else {
+                    errorMessage.textContent = result.error || 'An error occurred while uploading.';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Failed to connect to the server.';
+            }
+        });
+    </script>
+</body>
+</html>
