@@ -3,6 +3,7 @@ import os
 import uuid
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
+from utilities.utils import extract_text_from_pdf
 
 class ServerConfig:
     CONFIG_FILE = "server_config.json"
@@ -12,6 +13,8 @@ class ServerConfig:
         try:
             with open(ServerConfig.CONFIG_FILE, 'r') as config_file:
                 return json.load(config_file)
+        except FileNotFoundError:
+            raise FileNotFoundError("server_config.json not found. Please create it.")
         except json.JSONDecodeError as e:
             raise ValueError(f"Error decoding JSON config: {str(e)}")
 
@@ -49,15 +52,39 @@ class PDFSummarizerApp:
             if file.filename == '':
                 return jsonify({"error": "No selected file"}), 400
 
-            if file:
-                # Generate a unique filename to avoid conflicts
+            if not file.filename.endswith('.pdf'):
+                return jsonify({"error": "Only PDF files are allowed"}), 400
+
+            try:
                 unique_filename = f"{uuid.uuid4()}_{file.filename}"
                 filepath = os.path.join(self.app.config['UPLOAD_FOLDER'], unique_filename)
                 file.save(filepath)
                 return jsonify({"message": "File uploaded successfully", "filepath": filepath}), 200
+            except Exception as e:
+                return jsonify({"error": f"File upload failed: {str(e)}"}), 500
+
+        @self.app.route('/summarize', methods=['POST'])
+        def summarize():
+            data = request.json
+            if not data or 'filepath' not in data:
+                return jsonify({"error": "No filepath provided"}), 400
+
+            filepath = data['filepath']
+            if not os.path.exists(filepath):
+                return jsonify({"error": "File not found"}), 404
+
+            try:
+                text = extract_text_from_pdf(filepath)
+                # summary = summarize_text(text)
+                return jsonify({"summary": text}), 200
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/health', methods=['GET'])
+        def health_check():
+            return jsonify({"status": "healthy"}), 200
 
     def run(self):
-        # Disable debug mode and ensure host and port are set correctly for production
         self.app.run(
             debug=ServerConfig.get('DEBUG'), 
             host=ServerConfig.get('HOST'), 

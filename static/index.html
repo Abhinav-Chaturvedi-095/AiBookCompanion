@@ -21,11 +21,13 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
         }
         h1 {
             color: #333;
         }
-        .upload-btn {
+        .upload-btn, .summarize-btn {
             margin: 20px 0;
         }
         input[type="file"] {
@@ -50,30 +52,48 @@
             margin-top: 20px;
             color: red;
         }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            resize: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Upload Your PDF</h1>
+        <h1>AI PDF Summarizer</h1>
         <form id="uploadForm">
             <input type="file" id="fileInput" accept=".pdf" required>
             <div class="upload-btn">
-                <button type="submit">Upload</button>
+                <button type="submit">Upload PDF</button>
             </div>
         </form>
+        <div class="summarize-btn">
+            <button id="summarizeBtn" disabled>Generate Summary</button>
+        </div>
         <div id="responseMessage" class="message"></div>
         <div id="errorMessage" class="error"></div>
+        <textarea id="summaryOutput" placeholder="Summary will appear here..." readonly></textarea>
     </div>
 
     <script>
+        let uploadedFilePath = '';
+
         document.getElementById('uploadForm').addEventListener('submit', async (event) => {
             event.preventDefault();
             const fileInput = document.getElementById('fileInput');
             const responseMessage = document.getElementById('responseMessage');
             const errorMessage = document.getElementById('errorMessage');
+            const summarizeBtn = document.getElementById('summarizeBtn');
+            const summaryOutput = document.getElementById('summaryOutput');
 
             responseMessage.textContent = '';
             errorMessage.textContent = '';
+            summaryOutput.value = '';
 
             if (!fileInput.files.length) {
                 errorMessage.textContent = 'Please select a file to upload.';
@@ -91,9 +111,45 @@
 
                 const result = await response.json();
                 if (response.ok) {
+                    uploadedFilePath = result.filepath;
                     responseMessage.textContent = result.message;
+                    summarizeBtn.disabled = false;
                 } else {
                     errorMessage.textContent = result.error || 'An error occurred while uploading.';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Failed to connect to the server.';
+            }
+        });
+
+        document.getElementById('summarizeBtn').addEventListener('click', async () => {
+            const responseMessage = document.getElementById('responseMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const summaryOutput = document.getElementById('summaryOutput');
+
+            responseMessage.textContent = '';
+            errorMessage.textContent = '';
+            summaryOutput.value = '';
+
+            if (!uploadedFilePath) {
+                errorMessage.textContent = 'No uploaded file to summarize.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ filepath: uploadedFilePath }),
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    summaryOutput.value = result.summary;
+                } else {
+                    errorMessage.textContent = result.error || 'An error occurred while summarizing.';
                 }
             } catch (error) {
                 errorMessage.textContent = 'Failed to connect to the server.';
